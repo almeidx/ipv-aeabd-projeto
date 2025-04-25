@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
+import { MongoClient } from "mongodb";
 import { Client as PostgresClient } from "pg";
 import { DBGEN_DIR } from "./constants.ts";
-import { MongoClient } from "mongodb";
 
 const ri = await readFile(new URL("dss.ri", DBGEN_DIR), "utf-8");
 

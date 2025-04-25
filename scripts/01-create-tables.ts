@@ -1,14 +1,14 @@
 import { readFile } from "node:fs/promises";
-import { Client as PostgresClient } from "pg";
-import { MongoClient } from "mongodb";
-import { DBGEN_DIR, TABLES } from "./constants.ts";
 import {
 	CreateTableCommand,
 	type CreateTableCommandInput,
 	DeleteTableCommand,
 	DynamoDBClient,
 } from "@aws-sdk/client-dynamodb";
+import { MongoClient } from "mongodb";
+import { Client as PostgresClient } from "pg";
 import type { WritableDeep } from "type-fest";
+import { DBGEN_DIR, TABLES } from "./constants.ts";
 
 await createPostgresTables();
 await createMongoCollections();
@@ -138,10 +138,6 @@ async function createDynamoDBTables() {
 				OnDemandThroughput: {
 					MaxReadRequestUnits: MaxTableThroughput,
 					MaxWriteRequestUnits: MaxTableThroughput,
-				},
-				ProvisionedThroughput: {
-					ReadCapacityUnits: MaxTableThroughput,
-					WriteCapacityUnits: MaxTableThroughput,
 				},
 			}),
 		);

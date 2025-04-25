@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
-import { Client as PostgresClient } from "pg";
+import { BatchWriteItemCommand, DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { MongoClient } from "mongodb";
-import { DBGEN_DIR, COLUMNS, TABLES } from "./constants.ts";
-import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
+import { Client as PostgresClient } from "pg";
+import { COLUMNS, DBGEN_DIR, TABLES } from "./constants.ts";
 
 console.time("Parsing data");
 
@@ -40,7 +40,7 @@ await importDynamoDB();
 // #region PostgreSQL
 
 async function importPostgres() {
-	const log = `[PostgreSQL] Completed importing all tables`;
+	const log = "[PostgreSQL] Completed importing all tables";
 	console.time(log);
 
 	const client = new PostgresClient(process.env.POSTGRES_URI!);
@@ -97,7 +97,7 @@ async function importPostgresTable<TableName extends keyof typeof data>(table: T
 // #region MongoDB
 
 async function importMongo() {
-	const log = `[MongoDB] Completed importing all tables`;
+	const log = "[MongoDB] Completed importing all tables";
 	console.time(log);
 
 	const client = new MongoClient(process.env.MONGO_URI!);
@@ -131,7 +131,7 @@ async function importMongoTable<TableName extends keyof typeof data>(table: Tabl
 // #region DynamoDB
 
 async function importDynamoDB() {
-	const log = `[DynamoDB] Completed importing all tables`;
+	const log = "[DynamoDB] Completed importing all tables";
 	console.time(log);
 
 	const client = new DynamoDBClient({
@@ -162,21 +162,50 @@ async function importDynamoDB() {
 }
 
 async function importDynamoDBTable<TableName extends keyof typeof data>(table: TableName, client: DynamoDBClient) {
+	// DynamoDB is really slow... Trying to squeeze out as much performance as possible.
+	const BATCH_SIZE = 25;
+	const CONCURRENT_BATCHES = 10;
+
 	const tableData = data[table];
+	const totalRows = tableData.length;
 
-	for (const row of tableData) {
-		const item = Object.entries(row).reduce((acc, [key, value]) => {
-			if (typeof value === "number") {
-				acc[key] = { N: value };
-			} else if (value instanceof Date) {
-				acc[key] = { S: formatDate(value) };
-			} else {
-				acc[key] = { S: value };
-			}
-			return acc;
-		}, {});
+	for (let i = 0; i < totalRows; i += BATCH_SIZE * CONCURRENT_BATCHES) {
+		const batchPromises: Promise<unknown>[] = [];
 
-		await client.send(new PutItemCommand({ TableName: table, Item: item }));
+		for (let j = 0; j < CONCURRENT_BATCHES; j++) {
+			const startIndex = i + j * BATCH_SIZE;
+			if (startIndex >= totalRows) break;
+
+			const batch = tableData.slice(startIndex, startIndex + BATCH_SIZE);
+			if (batch.length === 0) break;
+
+			const requestItems = {
+				[table]: batch.map((row) => ({
+					PutRequest: {
+						Item: Object.entries(row).reduce((acc, [key, value]) => {
+							if (typeof value === "number") {
+								acc[key] = { N: value.toString() };
+							} else if (value instanceof Date) {
+								acc[key] = { S: formatDate(value) };
+							} else {
+								acc[key] = { S: value };
+							}
+							return acc;
+						}, {}),
+					},
+				})),
+			};
+
+			batchPromises.push(
+				client.send(
+					new BatchWriteItemCommand({
+						RequestItems: requestItems,
+					}),
+				),
+			);
+		}
+
+		await Promise.all(batchPromises);
 	}
 }
 
