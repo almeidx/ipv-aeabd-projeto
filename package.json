@@ -1,0 +1,30 @@
+{
+	"name": "ipv-aeabd-projeto",
+	"version": "1.0.0",
+	"type": "module",
+	"scripts": {
+		"fmt": "biome format --write",
+		"create-tables": "node --env-file=.env scripts/01-create-tables.ts",
+		"import-data": "node --env-file=.env scripts/02-import-data.ts",
+		"create-constraints": "node --env-file=.env scripts/03-create-constraints.ts"
+	},
+	"dependencies": {
+		"@aws-sdk/client-dynamodb": "^3.796.0",
+		"@aws-sdk/lib-dynamodb": "^3.796.0",
+		"mongodb": "^6.16.0",
+		"pg": "^8.15.5"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^1.9.4",
+		"@types/node": "^22.15.2",
+		"@types/pg": "^8.11.14",
+		"type-fest": "^4.40.0"
+	},
+	"engines": {
+		"node": "^23.11.0"
+	},
+	"pnpm": {
+		"onlyBuiltDependencies": ["@biomejs/biome"]
+	},
+	"packageManager": "pnpm@10.9.0"
+}
