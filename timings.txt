@@ -1,0 +1,30 @@
+100MB:
+
+Parsing data: 3.004s
+[PostgreSQL] Imported region: 4.927ms
+[PostgreSQL] Imported nation: 1.545ms
+[PostgreSQL] Imported supplier: 30.382ms
+[PostgreSQL] Imported partsupp: 869.691ms
+[PostgreSQL] Imported part: 440.764ms
+[PostgreSQL] Imported customer: 298.571ms
+[PostgreSQL] Imported orders: 2.666s
+[PostgreSQL] Imported lineitem: 22.915s
+[PostgreSQL] Completed importing all tables: 27.266s
+[MongoDB] Imported region: 8.264ms
+[MongoDB] Imported nation: 2.34ms
+[MongoDB] Imported supplier: 23.821ms
+[MongoDB] Imported partsupp: 641.763ms
+[MongoDB] Imported part: 172.439ms
+[MongoDB] Imported customer: 124.146ms
+[MongoDB] Imported orders: 1.395s
+[MongoDB] Imported lineitem: 6.969s
+[MongoDB] Completed importing all tables: 9.360s
+[DynamoDB] Imported region: 32.371ms
+[DynamoDB] Imported nation: 73.747ms
+[DynamoDB] Imported supplier: 2.890s
+[DynamoDB] Imported partsupp: 2:43.734 (m:ss.mmm)
+[DynamoDB] Imported part: 38.954s
+[DynamoDB] Imported customer: 30.360s
+[DynamoDB] Imported orders: 5:12.585 (m:ss.mmm)
+[DynamoDB] Imported lineitem: 24:18.729 (m:ss.mmm)
+[DynamoDB] Completed importing all tables: 33:27.439 (m:ss.mmm)
