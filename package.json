@@ -4,14 +4,15 @@
 	"type": "module",
 	"scripts": {
 		"create-constraints": "node --env-file=.env scripts/03-create-constraints.ts",
-		"create-tables": "node --env-file=.env scripts/01-create-tables.ts",
+		"create-tables": "node --env-file=.env scripts/create-tables.ts",
 		"fmt": "biome format --write",
-		"import-data": "node --env-file=.env scripts/02-import-data.ts",
+		"generate-data": "node --env-file=.env scripts/generate-data.ts",
 		"lint": "biome check"
 	},
 	"dependencies": {
 		"@aws-sdk/client-dynamodb": "^3.796.0",
-		"@aws-sdk/lib-dynamodb": "^3.796.0",
+		"@aws-sdk/util-dynamodb": "^3.806.0",
+		"@faker-js/faker": "^9.7.0",
 		"fastify": "^5.3.2",
 		"mongodb": "^6.16.0",
 		"pg": "^8.15.5"
@@ -22,9 +23,9 @@
 		"@types/pg": "^8.11.14",
 		"type-fest": "^4.40.0"
 	},
-	"packageManager": "pnpm@10.9.0",
+	"packageManager": "pnpm@10.10.0",
 	"engines": {
-		"node": "^23.11.0"
+		"node": "^24.0.1"
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": ["@biomejs/biome"]

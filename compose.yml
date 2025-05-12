@@ -1,10 +1,11 @@
 services:
   postgres:
     image: postgres:17
+    container_name: postgres
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: postgres
+      POSTGRES_DB: aeabd
     ports:
       - 5432:5432
     volumes:
@@ -12,6 +13,7 @@ services:
 
   mongo:
     image: mongo:8
+    container_name: mongo
     ports:
       - 27017:27017
     volumes:
@@ -19,6 +21,7 @@ services:
 
   dynamodb:
     image: amazon/dynamodb-local
+    container_name: dynamodb
     ports:
       - 8000:8000
     command: -jar DynamoDBLocal.jar -sharedDb

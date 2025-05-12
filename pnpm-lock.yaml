@@ -11,9 +11,12 @@ importers:
       '@aws-sdk/client-dynamodb':
         specifier: ^3.796.0
         version: 3.796.0
-      '@aws-sdk/lib-dynamodb':
-        specifier: ^3.796.0
-        version: 3.796.0(@aws-sdk/client-dynamodb@3.796.0)
+      '@aws-sdk/util-dynamodb':
+        specifier: ^3.806.0
+        version: 3.806.0(@aws-sdk/client-dynamodb@3.796.0)
+      '@faker-js/faker':
+        specifier: ^9.7.0
+        version: 9.7.0
       fastify:
         specifier: ^5.3.2
         version: 5.3.2
@@ -96,12 +99,6 @@ packages:
     resolution: {integrity: sha512-2+a4WXRc+07uiPR+zJiPGKSOWaNJQNqitkks+6Hhm/haTLJqNVTgY2OWDh2PXvwMNpKB+AlGdhE65Oy6NzUgXg==}
     engines: {node: '>=18.0.0'}
 
-  '@aws-sdk/lib-dynamodb@3.796.0':
-    resolution: {integrity: sha512-a41QARAf5GPcb/cN1MdzNVNp6wfqnKqHbyIkWcwbgKGawhVLZBBfGXYyJIVGmLq6B8kG6bB0IFuY5HdUxdv6NA==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      '@aws-sdk/client-dynamodb': ^3.796.0
-
   '@aws-sdk/middleware-endpoint-discovery@3.775.0':
     resolution: {integrity: sha512-L0PmjSg7t+wovRo/Lin1kpei3e7wBhrENWb1Bbccu3PWUIfxolGeWplOmNhSlXjuQe9GXjf3z8kJRYOGBMFOvw==}
     engines: {node: '>=18.0.0'}
@@ -138,11 +135,11 @@ packages:
     resolution: {integrity: sha512-ZoGKwa4C9fC9Av6bdfqcW6Ix5ot05F/S4VxWR2nHuMv7hzfmAjTOcUiWT7UR4hM/U0whf84VhDtXN/DWAk52KA==}
     engines: {node: '>=18.0.0'}
 
-  '@aws-sdk/util-dynamodb@3.796.0':
-    resolution: {integrity: sha512-Pxl1+1CuCafZQJJKhdo0BvgrqkH8GlJvHDdUUf2VsUS25nJZKhSgDr/d+vDgkVLPwkwv7/ImiFfhHmQdr43fjg==}
+  '@aws-sdk/util-dynamodb@3.806.0':
+    resolution: {integrity: sha512-R0oAO0/g3GmNdHyjjbeQoojZSbz4L7pRX0HOjTxCQNQ1W05HO2kcK+3VZ+CdEbg6P5svHfTe4fazbHoO4hjl0A==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
-      '@aws-sdk/client-dynamodb': ^3.796.0
+      '@aws-sdk/client-dynamodb': ^3.806.0
 
   '@aws-sdk/util-endpoints@3.787.0':
     resolution: {integrity: sha512-fd3zkiOkwnbdbN0Xp9TsP5SWrmv0SpT70YEdbb8wAj2DWQwiCmFszaSs+YCvhoCdmlR3Wl9Spu0pGpSAGKeYvQ==}
@@ -216,6 +213,10 @@ packages:
     engines: {node: '>=14.21.3'}
     cpu: [x64]
     os: [win32]
+
+  '@faker-js/faker@9.7.0':
+    resolution: {integrity: sha512-aozo5vqjCmDoXLNUJarFZx2IN/GgGaogY4TMJ6so/WLZOWpSV7fvj2dmrV6sEAnUm1O7aCrhTibjpzeDFgNqbg==}
+    engines: {node: '>=18.0.0', npm: '>=9.0.0'}
 
   '@fastify/ajv-compiler@4.0.2':
     resolution: {integrity: sha512-Rkiu/8wIjpsf46Rr+Fitd3HRP+VsxUFDDeag0hs9L0ksfnwx2g7SPQQTFL0E8Qv+rfXzQOxBJnjUB9ITUDjfWQ==}
@@ -967,16 +968,6 @@ snapshots:
       mnemonist: 0.38.3
       tslib: 2.8.1
 
-  '@aws-sdk/lib-dynamodb@3.796.0(@aws-sdk/client-dynamodb@3.796.0)':
-    dependencies:
-      '@aws-sdk/client-dynamodb': 3.796.0
-      '@aws-sdk/core': 3.796.0
-      '@aws-sdk/util-dynamodb': 3.796.0(@aws-sdk/client-dynamodb@3.796.0)
-      '@smithy/core': 3.2.0
-      '@smithy/smithy-client': 4.2.0
-      '@smithy/types': 4.2.0
-      tslib: 2.8.1
-
   '@aws-sdk/middleware-endpoint-discovery@3.775.0':
     dependencies:
       '@aws-sdk/endpoint-cache': 3.723.0
@@ -1084,7 +1075,7 @@ snapshots:
       '@smithy/types': 4.2.0
       tslib: 2.8.1
 
-  '@aws-sdk/util-dynamodb@3.796.0(@aws-sdk/client-dynamodb@3.796.0)':
+  '@aws-sdk/util-dynamodb@3.806.0(@aws-sdk/client-dynamodb@3.796.0)':
     dependencies:
       '@aws-sdk/client-dynamodb': 3.796.0
       tslib: 2.8.1
@@ -1149,6 +1140,8 @@ snapshots:
 
   '@biomejs/cli-win32-x64@1.9.4':
     optional: true
+
+  '@faker-js/faker@9.7.0': {}
 
   '@fastify/ajv-compiler@4.0.2':
     dependencies:
