@@ -30,16 +30,23 @@ async function createMongoCollections() {
 		validator: {
 			$jsonSchema: {
 				bsonType: "object",
-				required: ["api_key", "type", "created_at"],
+				required: ["api_key", "purpose", "created_at"],
 				properties: {
-					api_key: { bsonType: "string", description: "Unique API key" },
+					api_key: { bsonType: "string" },
 					description: { bsonType: "string" },
-					type: { bsonType: "string", enum: ["read", "write", "admin"] },
-					data_classification: { bsonType: "string", enum: ["Public", "Internal", "Confidential", "Restricted"] },
+					purpose: { bsonType: "string", enum: ["Audit", "Marketing", "System"] },
+					data_classification: {
+						bsonType: "array",
+						items: {
+							bsonType: "string",
+							enum: ["Public", "Internal", "Confidential", "Restricted"],
+						},
+						minItems: 1,
+					},
 					created_by: { bsonType: "string" },
 					created_at: { bsonType: "date" },
 					updated_at: { bsonType: "date" },
-					expiration_date: { bsonType: "date" },
+					expiration_date: { bsonType: ["date", "null"] },
 					last_used: { bsonType: ["date", "null"] },
 					usages: { bsonType: "int" },
 					allowed_ips: { bsonType: "array", items: { bsonType: "string" } },

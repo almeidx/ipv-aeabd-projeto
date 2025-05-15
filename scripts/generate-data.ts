@@ -3,6 +3,7 @@ import { Client as PostgresClient } from "pg";
 import { fakerPT_PT as faker } from "@faker-js/faker";
 import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
 import { marshall } from "@aws-sdk/util-dynamodb";
+import type { ApiKey } from "../src/types.ts";
 
 const SCALE = 1;
 
@@ -134,14 +135,17 @@ async function generateMongoData() {
 
 		console.log(`[MongoDB] Generating ${NUM_API_KEYS} API keys...`);
 
-		const apiKeys: any[] = [];
+		const apiKeys: ApiKey[] = [];
 
 		for (let i = 0; i < NUM_API_KEYS; i++) {
 			const apiKey = {
 				api_key: faker.string.uuid(),
 				description: faker.lorem.sentence(),
-				type: faker.helpers.arrayElement(["read", "write", "admin"]),
-				data_classification: faker.helpers.arrayElement(["Public", "Internal", "Confidential", "Restricted"]),
+				purpose: faker.helpers.arrayElement(["Marketing", "Audit", "System"]),
+				data_classification: faker.helpers.arrayElements(["Public", "Internal", "Confidential", "Restricted"], {
+					min: 1,
+					max: 4,
+				}),
 				created_by: faker.internet.username(),
 				created_at: faker.date.past(),
 				updated_at: faker.date.recent(),

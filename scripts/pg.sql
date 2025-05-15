@@ -35,13 +35,30 @@ CREATE TABLE transactions (
   FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
 );
 
--- 3. Roles
+-- 3. Indexes
+
+-- 3.1 Customers table indexes
+
+CREATE UNIQUE INDEX idx_customers_email ON customers(email);
+CREATE INDEX idx_customers_country ON customers(country);
+CREATE INDEX idx_customers_consent ON customers(consent_marketing) WHERE consent_marketing = TRUE;
+CREATE INDEX idx_customers_data_class ON customers(data_classification);
+
+-- 3.2 Transactions table indexes
+
+CREATE INDEX idx_transactions_customer_id ON transactions(customer_id);
+CREATE INDEX idx_transactions_date ON transactions(transaction_date);
+CREATE INDEX idx_transactions_status ON transactions(status);
+CREATE INDEX idx_transactions_data_class ON transactions(data_classification);
+CREATE INDEX idx_transactions_currency ON transactions(currency);
+
+-- 4. Roles
 
 CREATE ROLE data_steward;
 CREATE ROLE auditor;
 CREATE ROLE marketing;
 
--- 4. Users
+-- 5. Users
 
 CREATE USER data_steward_user WITH PASSWORD 'by5n25518wI4uM8Jhm84pfXv68MUVbr3';
 CREATE USER auditor_user WITH PASSWORD 'MqX1KQ9OU0pkRZ29AtYHns4b1aB2M49a';
@@ -51,12 +68,12 @@ GRANT data_steward TO data_steward_user;
 GRANT auditor TO auditor_user;
 GRANT marketing TO marketing_user;
 
--- 5. Row-Level Security
+-- 6. Row-Level Security
 
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 
--- 5.1 Customers Table Policies
+-- 6.1 Customers table policies
 
 CREATE POLICY marketing_access ON customers
 FOR SELECT
@@ -74,7 +91,7 @@ FOR SELECT
 TO auditor
 USING (data_classification IN ('Public', 'Internal'));
 
--- 5.2 Transactions Table Policies
+-- 6.2 Transactions table policies
 
 CREATE POLICY steward_transactions ON transactions
 FOR ALL
@@ -82,19 +99,19 @@ TO data_steward
 USING (true)
 WITH CHECK (true);
 
-CREATE POLICY auditor_txn_read ON transactions
+CREATE POLICY auditor_transactions_read ON transactions
 FOR SELECT
 TO auditor
 USING (data_classification IN ('Public', 'Internal'));
 
-CREATE POLICY marketing_txn_access ON transactions
+CREATE POLICY marketing_transactions_access ON transactions
 FOR SELECT
 TO marketing
 USING (customer_id IN (SELECT customer_id FROM customers WHERE consent_marketing = TRUE));
 
--- 6. Column-Level Security
+-- 7. Column-Level Security
 
--- 6.1 Marketing role permissions
+-- 7.1 Marketing role permissions
 
 GRANT SELECT (customer_id, first_name, last_name, email, country, consent_marketing, consent_date)
 ON customers TO marketing;
@@ -102,7 +119,7 @@ ON customers TO marketing;
 GRANT SELECT (transaction_id, customer_id, transaction_date, amount, currency, status)
 ON transactions TO marketing;
 
--- 6.2 Auditor role permissions
+-- 7.2 Auditor role permissions
 
 GRANT SELECT (customer_id, first_name, last_name, city, country, data_classification, consent_marketing, consent_date, created_at, updated_at)
 ON customers TO auditor;
@@ -110,7 +127,7 @@ ON customers TO auditor;
 GRANT SELECT (transaction_id, customer_id, transaction_date, currency, status, data_classification, created_at)
 ON transactions TO auditor;
 
--- 6.3 Data steward role permissions
+-- 7.3 Data steward role permissions
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON customers TO data_steward;
 GRANT SELECT, INSERT, UPDATE, DELETE ON transactions TO data_steward;
