@@ -9,13 +9,14 @@ CREATE TABLE customers (
   customer_id INT PRIMARY KEY,
   first_name VARCHAR(64) NOT NULL,
   last_name VARCHAR(64) NOT NULL,
-  email VARCHAR(320) UNIQUE NOT NULL,
+  email VARCHAR(320) NOT NULL,
   phone VARCHAR(13),
   address_line1 VARCHAR(128) NOT NULL,
   address_line2 VARCHAR(128),
   city VARCHAR(64) NOT NULL,
   postal_code VARCHAR(8) NOT NULL,
   country VARCHAR(64) NOT NULL,
+  nif INT UNIQUE NOT NULL,
   data_classification data_classification_enum DEFAULT 'Internal',
   consent_marketing BOOLEAN DEFAULT FALSE,
   consent_date TIMESTAMP,
@@ -39,17 +40,14 @@ CREATE TABLE transactions (
 
 -- 3.1 Customers table indexes
 
-CREATE UNIQUE INDEX idx_customers_email ON customers(email);
 CREATE INDEX idx_customers_country ON customers(country);
 CREATE INDEX idx_customers_consent ON customers(consent_marketing) WHERE consent_marketing = TRUE;
-CREATE INDEX idx_customers_data_class ON customers(data_classification);
 
 -- 3.2 Transactions table indexes
 
 CREATE INDEX idx_transactions_customer_id ON transactions(customer_id);
 CREATE INDEX idx_transactions_date ON transactions(transaction_date);
 CREATE INDEX idx_transactions_status ON transactions(status);
-CREATE INDEX idx_transactions_data_class ON transactions(data_classification);
 CREATE INDEX idx_transactions_currency ON transactions(currency);
 
 -- 4. Roles
@@ -113,10 +111,10 @@ USING (customer_id IN (SELECT customer_id FROM customers WHERE consent_marketing
 
 -- 7.1 Marketing role permissions
 
-GRANT SELECT (customer_id, first_name, last_name, email, country, consent_marketing, consent_date)
+GRANT SELECT (customer_id, first_name, last_name, email, country, data_classification, consent_marketing, consent_date)
 ON customers TO marketing;
 
-GRANT SELECT (transaction_id, customer_id, transaction_date, amount, currency, status)
+GRANT SELECT (transaction_id, customer_id, transaction_date, amount, currency, status, data_classification)
 ON transactions TO marketing;
 
 -- 7.2 Auditor role permissions

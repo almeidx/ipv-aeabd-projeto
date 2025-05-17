@@ -2,6 +2,9 @@ import type { FastifyRequest, FastifyReply } from "fastify";
 import { apiKeysCollection } from "../lib/mongo.ts";
 
 export async function onRequestAuth(request: FastifyRequest, reply: FastifyReply) {
+	const nowDate = new Date();
+	request.requestContext.set("initialTime", nowDate);
+
 	// public-ish endpoints
 	if (
 		request.url === "/" ||
@@ -16,22 +19,30 @@ export async function onRequestAuth(request: FastifyRequest, reply: FastifyReply
 		return;
 	}
 
+	const startTime = performance.now();
+
 	const apiKeyRecord = await apiKeysCollection.findOne({
 		api_key: apiKey,
 
-		$or: [
-			[
-				// Not expired
-				{ expiration_date: null },
-				{ expiration_date: { $gt: new Date() } },
-			],
-			[
-				// Not IP restricted
-				{ allowed_ips: { $len: 0 } },
-				{ allowed_ips: { $in: [request.ip] } },
-			],
+		$and: [
+			{
+				$or: [
+					// Not expired
+					{ expiration_date: null },
+					{ expiration_date: { $gt: nowDate } },
+				],
+			},
+			// {
+			// 	$or: [
+			// 		// Not IP restricted
+			// 		{ allowed_ips: { $size: 0 } },
+			// 		{ allowed_ips: { $in: [request.ip] } },
+			// 	],
+			// },
 		],
 	});
+
+	request.requestContext.set("validationTime", performance.now() - startTime);
 
 	if (!apiKeyRecord) {
 		reply.status(403).send({ error: "Invalid or unauthorized API Key" });

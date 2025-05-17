@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
-import type { ApiKeyPurpose } from "../types.ts";
+import type { ApiKeyPurpose } from "../schemas.ts";
 
 export function assertApiKeyPurpose(
 	app: FastifyInstance,

@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
 
-export default async function rootRoute(app: FastifyInstance) {
+export async function rootRoutes(app: FastifyInstance) {
 	app.get("/", () => "OK");
 }

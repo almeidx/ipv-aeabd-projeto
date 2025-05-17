@@ -1,9 +1,10 @@
 import "./lib/connect-databases.ts";
 
-import fastifyCors from "@fastify/cors";
-import fastifyHelmet from "@fastify/helmet";
-import fastifySensible from "@fastify/sensible";
-import fastify from "fastify";
+import { fastifyCors } from "@fastify/cors";
+import { fastifyHelmet } from "@fastify/helmet";
+import { fastifyRequestContext } from "@fastify/request-context";
+import { fastifySensible } from "@fastify/sensible";
+import { fastify } from "fastify";
 import {
 	hasZodFastifySchemaValidationErrors,
 	isResponseSerializationError,
@@ -13,11 +14,15 @@ import {
 import { onRequestAuth } from "./hooks/onRequestAuth.ts";
 import { createApiKeyHandler } from "./routes/admin.ts";
 import { customersRoutes } from "./routes/customers.ts";
-import rootRoutes from "./routes/root.ts";
+import { rootRoutes } from "./routes/root.ts";
 import { transactionsRoutes } from "./routes/transactions.ts";
 import { gracefulShutdown } from "./utils/graceful-shutdown.ts";
+import { onResponse } from "./hooks/onResponse.ts";
 
-export const app = fastify({ logger: true });
+export const app = fastify({
+	logger: true,
+	trustProxy: true,
+});
 
 await app.register(fastifySensible);
 
@@ -31,8 +36,21 @@ await app.register(fastifyCors, {
 });
 
 await app.register(fastifyHelmet);
+await app.register(fastifyRequestContext);
 
 app.setErrorHandler((error, request, reply) => {
+	if (error.validation) {
+		reply.statusCode = 400;
+		reply.send(error.validation);
+		return;
+	}
+
+	if (error.statusCode) {
+		reply.statusCode = error.statusCode;
+		reply.send({ message: error.message });
+		return;
+	}
+
 	if (hasZodFastifySchemaValidationErrors(error)) {
 		reply.code(400).send({
 			error: "Response Validation Error",
@@ -71,11 +89,10 @@ app.setErrorHandler((error, request, reply) => {
 });
 
 app.addHook("onRequest", onRequestAuth);
+app.addHook("onResponse", onResponse);
 
 await app.register(rootRoutes);
-
 await app.register(createApiKeyHandler);
-
 await app.register(customersRoutes);
 await app.register(transactionsRoutes);
 

@@ -67,12 +67,61 @@ async function createMongoCollections() {
 					endpoint: { bsonType: "string" },
 					method: { bsonType: "string", enum: ["GET", "POST", "PUT", "DELETE", "PATCH"] },
 					status_code: { bsonType: "int" },
-					response_time_ms: { bsonType: "int" },
+					query_time_ms: { bsonType: ["double", "int"] },
+					validation_time_ms: { bsonType: ["double", "int"] },
+					elapsed_time_ms: { bsonType: ["double", "int"] },
 					ip_address: { bsonType: "string" },
 					user_agent: { bsonType: "string" },
-					request_body: { bsonType: ["object", "null"] },
-					query_params: { bsonType: ["object", "null"] },
 					accessed_resources: { bsonType: "array", items: { bsonType: "string" } },
+				},
+			},
+		},
+	});
+
+	await db.createCollection("customer_history", {
+		validator: {
+			$jsonSchema: {
+				bsonType: "object",
+				required: ["customer_nif", "timestamp", "update_kind", "object"],
+				properties: {
+					customer_nif: { bsonType: "int" },
+					timestamp: { bsonType: "date" },
+					update_kind: { bsonType: "string", enum: ["duplicate", "update"] },
+					customer: {
+						bsonType: "object",
+						required: [
+							"customer_id",
+							"first_name",
+							"last_name",
+							"email",
+							"phone",
+							"address_line1",
+							"address_line2",
+							"city",
+							"postal_code",
+							"country",
+							"nif",
+							"data_classification",
+						],
+						properties: {
+							first_name: { bsonType: "string" },
+							last_name: { bsonType: "string" },
+							email: { bsonType: "string" },
+							phone: { bsonType: ["string", "null"] },
+							address_line1: { bsonType: "string" },
+							address_line2: { bsonType: ["string", "null"] },
+							city: { bsonType: "string" },
+							postal_code: { bsonType: "string" },
+							country: { bsonType: "string" },
+							nif: { bsonType: "int" },
+							data_classification: {
+								bsonType: "string",
+								enum: ["Public", "Internal", "Confidential", "Restricted"],
+							},
+							consent_marketing: { bsonType: ["bool", "null"] },
+							consent_date: { bsonType: ["date", "null"] },
+						},
+					},
 				},
 			},
 		},
@@ -83,14 +132,16 @@ async function createMongoCollections() {
 	await apiKeysCol.createIndex({ api_key: 1 }, { unique: true });
 	await apiKeysCol.createIndex({ expiration_date: 1 });
 	await apiKeysCol.createIndex({ created_by: 1 });
-	await apiKeysCol.createIndex({ data_classification: 1 });
 
 	const accessLogsCol = db.collection("access_logs");
 
-	await accessLogsCol.createIndex({ timestamp: 1 });
 	await accessLogsCol.createIndex({ api_key: 1 });
 	await accessLogsCol.createIndex({ endpoint: 1 });
 	await accessLogsCol.createIndex({ status_code: 1 });
+
+	const customerHistoryCol = db.collection("customer_history");
+
+	await customerHistoryCol.createIndex({ customer_id: 1 });
 
 	await client.close();
 
@@ -110,9 +161,7 @@ async function createDynamoDBTables() {
 	const tables = [
 		{
 			TableName: "customer_preferences",
-			KeySchema: [
-				{ AttributeName: "customer_id", KeyType: "HASH" }, // Partition key
-			],
+			KeySchema: [{ AttributeName: "customer_id", KeyType: "HASH" }],
 			AttributeDefinitions: [{ AttributeName: "customer_id", AttributeType: "N" }],
 			ProvisionedThroughput: {
 				ReadCapacityUnits: 5,

@@ -3,61 +3,57 @@ import { Client as PostgresClient } from "pg";
 import { fakerPT_PT as faker } from "@faker-js/faker";
 import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
 import { marshall } from "@aws-sdk/util-dynamodb";
-import type { ApiKey } from "../src/types.ts";
+import type { AccessLog, ApiKey, Customer } from "../src/schemas.ts";
+
+// 1 ~ 10MB
+// 13 ~ 100MB
+// 100 ~ 1GB
 
 const SCALE = 1;
 
 const NUM_CUSTOMERS = 1_000 * SCALE;
 const NUM_TRANSACTIONS = 5_000 * SCALE;
+
 const NUM_API_KEYS = 50 * SCALE;
 const NUM_ACCESS_LOGS = 10_000 * SCALE;
+const NUM_CUSTOMER_HISTORY = 600 * SCALE;
+
 const NUM_CUSTOMER_PREFS = 500 * SCALE;
 
-await Promise.all([generatePostgresData(), generateMongoData(), generateDynamoDBData()]);
+const pgClient = new PostgresClient(process.env.POSTGRES_URI!);
+await pgClient.connect();
+
+await generatePostgresData();
+await generateMongoData();
+await generateDynamoDbData();
+
+await pgClient.end();
 
 async function generatePostgresData() {
-	const client = new PostgresClient(process.env.POSTGRES_URI!);
-	await client.connect();
-
 	try {
 		console.log(`[PostgreSQL] Generating ${NUM_CUSTOMERS} customers...`);
 
-		const usedEmails = new Set<string>();
+		const usedNifs = new Set<number>();
 
 		for (let i = 0; i < NUM_CUSTOMERS; i++) {
 			const consentMarketing = faker.datatype.boolean({ probability: 0.6 });
 
-			let email: string;
+			let nif: number;
 			do {
-				email = faker.internet.email();
-			} while (usedEmails.has(email));
+				nif = faker.number.int({ min: 100_000_000, max: 999_999_999 });
+			} while (usedNifs.has(nif));
+			usedNifs.add(nif);
 
-			usedEmails.add(email);
+			const customer = generateCustomer(i + 1, nif, consentMarketing);
 
-			const customer = {
-				customer_id: i + 1,
-				first_name: faker.person.firstName(),
-				last_name: faker.person.lastName(),
-				email,
-				phone: faker.phone.number({ style: "international" }),
-				address_line1: faker.location.streetAddress(),
-				address_line2: faker.helpers.maybe(() => faker.location.secondaryAddress(), { probability: 0.3 }),
-				city: faker.location.city(),
-				postal_code: faker.location.zipCode(),
-				country: faker.location.country(),
-				data_classification: faker.helpers.arrayElement(["Public", "Internal", "Confidential", "Restricted"]),
-				consent_marketing: consentMarketing,
-				consent_date: consentMarketing ? faker.date.past() : null,
-			};
-
-			await client.query(
+			await pgClient.query(
 				`
-        INSERT INTO customers (
-          customer_id, first_name, last_name, email, phone,
-          address_line1, address_line2, city, postal_code, country,
-          data_classification, consent_marketing, consent_date
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-      `,
+					INSERT INTO customers (
+						customer_id, first_name, last_name, email, phone,
+						address_line1, address_line2, city, postal_code, country,
+						nif, data_classification, consent_marketing, consent_date
+					) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+				`,
 				[
 					customer.customer_id,
 					customer.first_name,
@@ -69,6 +65,7 @@ async function generatePostgresData() {
 					customer.city,
 					customer.postal_code,
 					customer.country,
+					customer.nif,
 					customer.data_classification,
 					customer.consent_marketing,
 					customer.consent_date,
@@ -93,7 +90,7 @@ async function generatePostgresData() {
 				data_classification: faker.helpers.arrayElement(["Public", "Internal", "Confidential", "Restricted"]),
 			};
 
-			await client.query(
+			await pgClient.query(
 				`
         INSERT INTO transactions (
           transaction_id, customer_id, transaction_date, amount,
@@ -119,8 +116,6 @@ async function generatePostgresData() {
 		console.log("[PostgreSQL] Data generation completed");
 	} catch (err) {
 		console.error("[PostgreSQL] Error generating data:", err);
-	} finally {
-		await client.end();
 	}
 }
 
@@ -129,9 +124,12 @@ async function generateMongoData() {
 
 	try {
 		await client.connect();
+
 		const db = client.db("aeabd");
+
 		const apiKeysCollection = db.collection("api_keys");
 		const accessLogsCollection = db.collection("access_logs");
+		const customerHistoryCollection = db.collection("customer_history");
 
 		console.log(`[MongoDB] Generating ${NUM_API_KEYS} API keys...`);
 
@@ -152,7 +150,7 @@ async function generateMongoData() {
 				expiration_date: faker.date.future(),
 				last_used: faker.helpers.maybe(() => faker.date.recent(), { probability: 0.8 }) ?? null,
 				usages: faker.number.int({ min: 0, max: 10000 }),
-				allowed_ips: Array.from({ length: faker.number.int({ min: 0, max: 5 }) }, () => faker.internet.ipv4()),
+				allowed_ips: Array.from({ length: faker.number.int({ min: 1, max: 50 }) }, () => faker.internet.ipv4()),
 				rate_limit: faker.number.int({ min: 10, max: 1000 }),
 			};
 
@@ -165,11 +163,11 @@ async function generateMongoData() {
 
 		console.log(`[MongoDB] Generating ${NUM_ACCESS_LOGS} access logs...`);
 
-		const BATCH_SIZE = 1000;
+		const BATCH_SIZE = 1_000;
 		const apiKeyValues = apiKeys.map((k) => k.api_key);
 
 		for (let batch = 0; batch < NUM_ACCESS_LOGS / BATCH_SIZE; batch++) {
-			const accessLogs: any[] = [];
+			const accessLogs: AccessLog[] = [];
 
 			for (let i = 0; i < BATCH_SIZE; i++) {
 				const accessLog = {
@@ -178,21 +176,21 @@ async function generateMongoData() {
 					endpoint: `/api/${faker.helpers.arrayElement(["customers", "transactions", "products", "orders"])}`,
 					method: faker.helpers.arrayElement(["GET", "POST", "PUT", "DELETE", "PATCH"]),
 					status_code: faker.helpers.arrayElement([200, 201, 204, 400, 401, 403, 404, 500]),
-					response_time_ms: faker.number.int({ min: 1, max: 1000 }),
+					query_time_ms: faker.number.int({ min: 1, max: 300 }),
+					validation_time_ms: faker.number.int({ min: 1, max: 300 }),
+					elapsed_time_ms: faker.number.int({ min: 1, max: 1_000 }),
 					ip_address: faker.internet.ipv4(),
 					user_agent: faker.internet.userAgent(),
-					request_body: faker.helpers.maybe(() => ({ data: faker.lorem.sentence() }), { probability: 0.4 }) ?? null,
-					query_params:
-						faker.helpers.maybe(
-							() => ({
-								limit: faker.number.int({ min: 10, max: 100 }),
-								offset: faker.number.int({ min: 0, max: 1000 }),
-							}),
-							{ probability: 0.6 },
-						) ?? null,
-					accessed_resources: Array.from({ length: faker.number.int({ min: 1, max: 3 }) }, () =>
-						faker.helpers.arrayElement(["customers", "transactions", "products", "orders"]),
-					),
+					accessed_resources: Array.from({ length: faker.number.int({ min: 1, max: 100 }) }, () => {
+						const resourceType = faker.helpers.arrayElement(["customers", "transactions"]);
+
+						const resourceId =
+							resourceType === "customers"
+								? faker.number.int({ min: 1, max: NUM_CUSTOMERS })
+								: faker.number.int({ min: 1, max: NUM_TRANSACTIONS });
+
+						return `${resourceType}:${resourceId}`;
+					}),
 				};
 
 				accessLogs.push(accessLog);
@@ -205,6 +203,35 @@ async function generateMongoData() {
 			console.log(`[MongoDB] Generated ${(batch + 1) * BATCH_SIZE} access logs`);
 		}
 
+		console.log(`[MongoDB] Generating ${NUM_CUSTOMER_HISTORY} customer history...`);
+
+		const nifs = (await pgClient.query<{ nif: number }>("SELECT nif FROM customers")).rows.flatMap((row) => row.nif);
+
+		const HISTORY_BATCH_SIZE = 500;
+
+		for (let batch = 0; batch < NUM_CUSTOMER_HISTORY / HISTORY_BATCH_SIZE; batch++) {
+			const historyItems: any[] = [];
+
+			for (let i = 0; i < HISTORY_BATCH_SIZE; i++) {
+				const customerNif = faker.helpers.arrayElement(nifs);
+
+				const historyItem = {
+					customer_nif: customerNif,
+					timestamp: faker.date.past(),
+					update_kind: faker.helpers.arrayElement(["duplicate", "update"]),
+					object: generateCustomer(undefined, customerNif, faker.datatype.boolean({ probability: 0.6 })),
+				};
+
+				historyItems.push(historyItem);
+			}
+
+			if (historyItems.length > 0) {
+				await customerHistoryCollection.insertMany(historyItems);
+			}
+
+			console.log(`[MongoDB] Generated ${(batch + 1) * HISTORY_BATCH_SIZE} customer history records`);
+		}
+
 		console.log("[MongoDB] Data generation completed");
 	} catch (err) {
 		console.error("[MongoDB] Error generating data:", err);
@@ -214,7 +241,7 @@ async function generateMongoData() {
 	}
 }
 
-async function generateDynamoDBData() {
+async function generateDynamoDbData() {
 	const client = new DynamoDBClient({
 		region: process.env.DYNAMODB_REGION!,
 		endpoint: process.env.DYNAMODB_ENDPOINT!,
@@ -261,4 +288,28 @@ async function generateDynamoDBData() {
 	} finally {
 		client.destroy();
 	}
+}
+
+function generateCustomer(id: number | undefined, nif: number, consentMarketing: boolean) {
+	const object: Omit<Customer, "customer_id" | "created_at" | "updated_at"> & Partial<Pick<Customer, "customer_id">> = {
+		first_name: faker.person.firstName(),
+		last_name: faker.person.lastName(),
+		email: faker.internet.email(),
+		phone: faker.phone.number({ style: "international" }),
+		address_line1: faker.location.streetAddress(),
+		address_line2: faker.helpers.maybe(() => faker.location.secondaryAddress(), { probability: 0.3 }) ?? null,
+		city: faker.location.city(),
+		postal_code: faker.location.zipCode(),
+		country: faker.location.country(),
+		nif,
+		data_classification: faker.helpers.arrayElement(["Public", "Internal", "Confidential", "Restricted"]),
+		consent_marketing: consentMarketing,
+		consent_date: consentMarketing ? faker.date.past() : null,
+	};
+
+	if (id !== undefined) {
+		object.customer_id = id;
+	}
+
+	return object;
 }

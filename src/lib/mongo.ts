@@ -1,6 +1,6 @@
 import { MongoClient } from "mongodb";
 import assert from "node:assert";
-import type { AccessLog, ApiKey } from "../types.ts";
+import type { AccessLog, ApiKey } from "../schemas.ts";
 
 assert(process.env.MONGO_URI, "MONGO_URI environment variable is not set.");
 assert(process.env.MONGO_DB, "MONGO_DB environment variable is not set.");

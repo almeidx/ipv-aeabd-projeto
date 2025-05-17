@@ -1,0 +1,27 @@
+GET http://localhost:3333/customers/top-spending
+X-Api-Key:
+
+### [Marketing] Get top spending customers
+
+GET http://localhost:3333/customers/top-spending
+X-Api-Key: 542e9039-0b70-4f26-8c50-ec4fe3302e83
+
+### [Marketing] Get top spending customers
+
+GET http://localhost:3333/customers/top-spending
+X-Api-Key: 8de3fa65-3fa5-4e03-85fd-4740fcbcb228
+
+### [Auditor] Get transaction status distribution
+
+GET http://localhost:3333/transactions/status-distribution
+X-Api-Key: 4032f778-5f37-4eed-9920-ce0f838bc194
+
+### [Auditor] Get transaction timeline
+
+GET http://localhost:3333/transactions/timeline
+X-Api-Key: 4032f778-5f37-4eed-9920-ce0f838bc194
+
+### [System] Get recent transactions
+
+GET http://localhost:3333/transactions/recent
+X-Api-Key: de4b2770-585d-49db-a4ad-35905b1938c4
