@@ -58,6 +58,9 @@ CREATE ROLE marketing;
 
 -- 5. Users
 
+-- Obviously, if this were a production system we'd not hardcode the passwords here.
+-- For the sake of this demo, we are using simple hardcoded passwords.
+-- This is not an issue since this service is not exposed to the public internet.
 CREATE USER data_steward_user WITH PASSWORD 'by5n25518wI4uM8Jhm84pfXv68MUVbr3';
 CREATE USER auditor_user WITH PASSWORD 'MqX1KQ9OU0pkRZ29AtYHns4b1aB2M49a';
 CREATE USER marketing_user WITH PASSWORD 'V8s2f64100Pr9JFi7X6oB3Id67U0u5g6';

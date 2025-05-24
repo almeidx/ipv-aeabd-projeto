@@ -5,10 +5,10 @@ import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
 import { marshall } from "@aws-sdk/util-dynamodb";
 import type { AccessLog, ApiKey, Customer } from "../src/schemas.ts";
 
-// 1 ~ 10MB
-// 13 ~ 100MB
-// 100 ~ 1GB
-
+// To change the size of the dataset, use the following values:
+//   1   -> about 10MB
+//   13  -> about 100MB
+//   100 -> about 1GB
 const SCALE = 1;
 
 const NUM_CUSTOMERS = 1_000 * SCALE;

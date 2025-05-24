@@ -1,6 +1,1 @@
 node_modules/
-
-tpc-h/dbgen/*.o
-tpc-h/dbgen/dbgen
-tpc-h/dbgen/qgen
-*.tbl
